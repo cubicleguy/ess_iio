@@ -1,0 +1,36 @@
+#
+# EPSON IMU driver
+#
+
+menu "Epson IMU Support"
+
+config EPSON_IMUS
+	tristate "Epson IMUs SPI driver"
+	depends on SPI
+	select IIO_EPSON_LIB
+	select IIO_TRIGGERED_EVENT
+	select IIO_SW_TRIGGER
+	select IIO_EPSON_LIB_BUFFER if IIO_BUFFER
+	help
+	  Say yes here to build support for Epson IMUs.
+	  
+config EPSONIMU_SAMPLE_32BIT
+	bool "32-bit Sample Size"
+	help
+	  Selects IMU Output Sample Size of 32-bit.
+
+endmenu
+
+
+config IIO_EPSON_LIB
+	tristate
+	help
+	  Library of IO functions for Epson IMUs.
+
+config IIO_EPSON_LIB_BUFFER
+	bool
+	select IIO_TRIGGERED_BUFFER
+	help
+	  Library of buffer functions for Epson IMUs.
+
+
