@@ -1,0 +1,15 @@
+To get information on the device function using sysfs:
+cat sys/devices/platform/ocp/48030000.spi/spi_master/spi1/spi1.0/iio\
+:device0/name
+
+
+Elevated privildge is required to perform the commands. Typically for the Raspberry Pi OS
+the "su" command doesn't work by default because the su password is unset. To enable su (superuser)
+perform the following:
+
+sudo passwd
+<set the new password>
+
+
+Useful documentation:
+linux/Documentation/ABI/testing/sysfs-bus-iio

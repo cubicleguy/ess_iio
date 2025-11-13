@@ -1,19 +1,29 @@
------------------------------------------------
-Epson IMU IIO Linux Device Driver and Streamer 
------------------------------------------------
-Version 1.20 - January 24, 2022
------------------------------------------------
+-------------------------------------------------------------------------
+Epson IMU IIO Linux Device Driver and Streamer v1.30 - October 10, 2025
+-------------------------------------------------------------------------
 
-PREREQUISITES
-=============
-1. Epson IMU device, Raspbian Pi and microSD card
-2. Epson IMU device connected with Raspberry Pi board through SPI.
 
-Raspbian Pi 3 B+                                Epson IMU
+REQUIREMENTS
+============
+1. A supported Epson IMU device (
+		G320PDG0	G330PDG0 	G354PDH0	G355QDG0
+        G364PDC0	G364PDCA	G365PDC1    G365PDF1	G366PDG0
+        G370PDF1 	G370PDS0	G370PDG0	G370PDT0)
+		
+2. Raspberry Pi (tested with Model 3B+) with Raspberry Pi OS (tested with Bookworm 32-bit and 64-bit)
+3. microSD Card (minimum 8GB)
+
+
+IMU CONNECTION DETAILS
+======================
+The Epson IMU device must be connected to the Raspberry Pi board through SPI as follows (tested with
+Raspberry Pi Model 3B+:
+
+Raspberry Pi 3B+                                Epson IMU
 ----------------                                ---------
 J8.01 (+3V3)                                    +3V3
-J8.18 (GPIO24)(GPIO_GEN5)                       DRDY [GPIO1]
-J8.15 (GPIO22)(GPIO_GEN3)                       #RST 
+J8.15 (GPIO22)(GPIO_GEN3)                       DRDY [GPIO1]
+J8.18 (GPIO24)(GPIO_GEN5)                       #RST 
 J8.19 (GPIO10)(SPI_MOSI)                        SDI 
 J8.21 (GPIO09)(SPI_MISO)                        SDO
 J8.23 (GPIO11)(SPI_SCLK)                        SCK
@@ -23,35 +33,41 @@ J8.39 (GND)                                     GND
 
 PREPARE SD CARD
 ===============
-1. Image your microSD card with Raspbian Pi by this utility:
-   https://www.raspberrypi.org/blog/raspberry-pi-imager-imaging-utility/
-2. Copy epson_iio_V1.20.tar.gz into the SD card with a new written Raspberry Pi image, in the boot partition.
+1. Prepare the microSD card using the Raspberry Pi Imager utility: https://www.raspberrypi.com/software/
+   The suggested release of Raspberry Pi OS is Bookworm (either 32-bit or 64-bit).
+2. If the Raspberry Pi will be accessed via a network, ensure to enable ssh during configuration.   
+3. Once the Raspberry Pi OS image is written, copy the file epson_iio_v1.30.tar.gz to the microSD card in
+   the boot partition (bootfs).
 
 
-COMPLETE RPi LINUX OS INSTALLATION
-==================================
-1. Insert the SD card into a Raspberry Pi board and power it up.
-2. Complete installation of RPi OS as it suggested (change your localization, time zone, password and do update) and restart.
+COMPLETE RPI OS INSTALLATION
+============================
+1. Insert the SD card into a Raspberry Pi board and turn power on. Note that the first boot may take a while.
+2. Complete installation of RPi OS as required (change your localization, time zone, password).
+3. Perform an update and restart.
 
 
 PROJECT DIRECTORY
 =================
-1. Untar epson_iio.tar.gz into your projects directory (i.e. /home/pi/projects):
-       mkdir /home/pi/projects       
-       tar -xf /boot/epson_iio_V1.20.tar.gz -C projects
+1. Untar the file epson_iio_v1.30.tar.gz into a projects directory (i.e. /home/pi/projects):
+    
+       mkdir ~/projects
+       tar -xf /boot/firmware/epson_iio_v1.30.tar.gz -C ~/projects/
        cd projects/
 
 
 CLONE RPI LINUX KERNEL
 ======================
-(source for more details: https://www.raspberrypi.org/documentation/linux/kernel/building.md)
+Setup the system with the tools to perform kernel building and then get the kernel source tree. For more details
+see, https://www.raspberrypi.org/documentation/linux/kernel/building.md)
+
 1. Install Git and the build dependencies:
        sudo apt-get install -y build-essential bc bison flex libssl-dev make libncurses-dev
+2. Get the kernel sources. This step will take some time:
+       git clone --depth=1 --branch=rpi-6.12.y https://github.com/raspberrypi/linux
 
-2. Get the sources, which will take some time:
-       git clone --depth=1 --branch=rpi-5.10.y https://github.com/raspberrypi/linux
-
-   *imu_iio_driver and epson-iiostream were tested with kernel 5.10 but may work with newer kernels as well.
+Note: imu_iio_driver and epson-iiostream were tested with kernel 6.12.34+rpt-rpi-v7 (x32) and 6.12.34+rpt-rpi-v8 (x64),
+      but may work with other kernels as well.
 
 
 INSTALL EPSON IMU_IIO_DRIVER INTO THE BUILD TREE
@@ -68,145 +84,107 @@ INSTALL EPSON IMU_IIO_DRIVER INTO THE BUILD TREE
 
 KERNEL CONFIGURATION
 ====================
-1. Make default build configuration as per your Raspberry Pi version:
-   a). Raspberry Pi 1, Pi Zero, Pi Zero W
-        cd linux/
-        KERNEL=kernel
-        make bcmrpi_defconfig   
+WARNING: These instructions are for kernel configuration of Raspberry Pi 3, and Pi 3+ running the 32‑bit/64-bit Raspberry Pi OS (Bookworm).
+For other models or OS versions, see the official Raspberry Pi Kernel Building Guide at
+https://www.raspberrypi.org/documentation/linux/kernel/building.md
 
-   b). Raspberry Pi 2, Pi 3, Pi 3+
+1. Make default build configuration according to the Raspberry Pi version:
+	As an example for Raspberry Pi 3, Pi 3+:
+ 
         cd linux/
         KERNEL=kernel7
         make bcm2709_defconfig
 
-   c). Raspberry Pi 4
-        cd linux/
-        KERNEL=kernel7l
-        make bcm2711_defconfig
-
-
-2. In the directory /home/pi/projects/linux/ run the command
+2. In the folder ~/projects/linux/ run the command
 
         make menuconfig
-
         Select
                 Device Drivers --->
-
         Select
                 Industrial I/O support --->
-
         Select
                 Inertial measurement units --->
-
         Select
                 Epson IMU Support --->
 
-
-        The Epson IMU specific menu allows selecting various options.
+        The Epson IMU specific menu allows selecting various options such as:
 
         <M> Epson IMUs SPI driver
         [ ]   32-bit Sample Size
 
-2. Save and exit.
+3. Save and exit.
 
 
 ADJUST YOUR LOCALVERSION
 ========================
-1. Open .config in /home/pi/projects/linux/ directory and change the default LOCALVERSION to somewhat you desire.
-   In this example 'e' is added (nano .config):       
+1. Open .config in the folder ~/projects/linux/ and change the default LOCALVERSION to identify the new build.
+   The following example adds 'e' to the end of the version using the command "nano .config" (see below)       
        #CONFIG_LOCALVERSION="-v7"
        CONFIG_LOCALVERSION="-v7e"
 
 
 BUILD KERNEL AND DRIVER
 =======================
-1. Run line by line (after a command completed) in /home/pi/projects/linux/ directory:
-       make -j4 zImage modules dtbs 
-       sudo make modules_install
+1. Run the following commands from the ~/projects/linux/ folder:
+       make -j6 zImage modules dtbs
+       sudo make -j6 modules_install
 
 2. After modules_install completed the last line reports kernel version compiled: 
-       DEPMOD 5.10.81-v7e+
+       DEPMOD  /lib/modules/6.12.41-v7e+
 
-3. Use this version as a folder name for the kernel and drivers installation:
-       sudo mkdir /boot/5.10.81-v7e+
-       sudo mkdir /boot/5.10.81-v7e+/overlays
+3. Create a backup of the current kernel and install the new kernel image using the following commands:
+       sudo cp /boot/firmware/$KERNEL.img /boot/firmware/$KERNEL-backup.img
+       sudo cp arch/arm/boot/zImage /boot/firmware/$KERNEL.img
+   
+4. Copy the overlays and README file:
+       sudo cp arch/arm/boot/dts/broadcom/*.dtb /boot/firmware/
+       sudo cp arch/arm/boot/dts/overlays/*.dtb* /boot/firmware/overlays/
+       sudo cp arch/arm/boot/dts/overlays/README /boot/firmware/overlays/
 
-4. Copy the kernel and modules:
-       sudo cp arch/arm/boot/dts/*.dtb /boot/5.10.81-v7e+/
-       sudo cp arch/arm/boot/dts/overlays/*.dtb* /boot/5.10.81-v7e+/overlays/
-       sudo cp arch/arm/boot/dts/overlays/README /boot/5.10.81-v7e+/overlays/
-       sudo cp arch/arm/boot/zImage /boot/5.10.81-v7e+/$KERNEL.img
-       sudo cp /boot/cmdline.txt /boot/5.10.81-v7e+/
-
-5. Point at your custom kernel and modules to boot it from in config.txt file. If something goes 
-   wrong with your custom build you can boot from an original one by commenting out the point.
-   Add the point to your build into /boot/config.txt at the end (sudo nano /boot/config.txt):
-       #point at custom kernel and modules
-       os_prefix=5.10.81-v7e+/
-       kernel=kernel7.img
-
-   Save it and exit
-6. Restart RPi
+5. Restart the Raspberry Pi
        sudo reboot
 
-7. After rebooting make sure you did boot with your kernel:
+6. After rebooting is complete, ensure the new kernel is running:
        uname -r
-       5.10.81-v7e+
+       6.12.41-v7e+
 
 
 COMPILE DEVICE TREE SOURCE AND LOAD THE OVERLAY
 ===============================================
-1. Go to imu_iio_driver/RPI-overlay directory:
-       cd /home/pi/projects/imu_iio_driver/RPI-overlay/
+1. Go to the folder imu_iio_driver/RPI-overlay:
+       cd ~/projects/imu_iio_driver/RPI-overlay/
 
-2. Compile epsonImu-overylay.dts (edit it if needed) and copy the output to your boot overlays:
-   a). by these commands:
-       dtc -@ -I dts -O dtb -o epsonImu.dtbo epsonImu-overylay.dts
-       sudo cp epsonImu.dtbo /boot/`uname -r`/overlays/.
-       sudo cp epsonImu.dtbo /boot/overlays/.
+2. Compile epson-imu-overlay.dts (edit if needed) and copy the output to the boot overlays using either:
+   a) the following commands:
+       dtc -@ -I dts -O dtb -o epson-imu.dtbo epson-imu-overlay.dts
+       sudo cp epson-imu.dtbo /boot/firmware/overlays/
 
-   b). or by script:    
+   b) or the following script:    
        ./dtccomp.sh
 
-3. Load the overlay: 
-       cd scripts/
+3. Load the overlay by using either: 
+   a) the following command:
+       sudo dtoverlay -v epson-imu
 
-   a). by the command:
-       sudo dtoverlay -v epsonImu
-
-   b). by the script:
+   b) or the following script:
        ./load.sh
-4. Make sure the driver loaded by dmesg command:
-[  110.435779] epsonimu_probe: IMU driver probe
-[  110.435806] epson_imus spi0.0: DRDY is GPIO 24
-[  110.435812] iio iio:device0: epson_init(), DRDY uses gpio 24, irq 167
-[  110.435823] epson_imus spi0.0: RST is GPIO 22
-[  110.435841] epson_imus spi0.0: Spi max freq is 1000000
-[  110.436273] iio iio:device0: SPI speed 500000
-[  111.369462] iio iio:device0: Product ID epsonG370PDF1
-[  111.369478] iio iio:device0: Found a match epsonimu_chips[3]
-[  111.369488] iio iio:device0: Model Variant: Compatible with epsonG365PDF0
-[  111.500391] epson_imus spi0.0: Self test passed
-[  111.598690] iio iio:device0: prod_id epsonG370PDF1 at CS0 (irq 167)
-[  111.599100] epson_probe_trigger, irq succeeded
-
 
 
 LIBIIO
 ======
-[source for more details: https://wiki.analog.com/resources/tools-software/linux-software/libiio]
+The Epson IMU driver requires the LIBIIO package to be installed. Issue the following commands to make and install LIBIIO
+For more details on LIBIIO, see https://wiki.analog.com/resources/tools-software/linux-software/libiio
 
-1. Install prerequisites:
-       sudo apt-get install libxml2 libxml2-dev bison flex libcdk5-dev cmake
-       sudo apt-get install libaio-dev libusb-1.0-0-dev libserialport-dev libxml2-dev libavahi-client-dev doxygen graphviz
+1. Install the dependencies using the following command:
+       sudo apt-get install libxml2 libxml2-dev bison flex libcdk5-dev cmake libaio-dev libusb-1.0-0-dev libserialport-dev libxml2-dev libavahi-client-dev doxygen graphviz libzstd-dev 
 
-2. Go to your projects directory, clone libini, make it and install:
-       cd /home/pi/projects/
+2. Go to the projects folder. Clone, make, and install libini using the following commands:
+       cd ~/projects/
        git clone https://github.com/pcercuei/libini.git
        cd libini
        mkdir build && cd build && cmake ../ && make && sudo make install
 
-3. Go to your projects directory, clone libiio, make it and install:
+3. Go to the projects folder. Clone, make, and install libiio using the following commands:
        cd ../..
        git clone https://github.com/analogdevicesinc/libiio.git
        cd libiio/
@@ -217,23 +195,193 @@ LIBIIO
 
 EPSON-IIOSTREAM
 ===============
-1. Go to your projects directory:
-       cd /home/pi/projects
 
-2. Copy this "epson-iiostream" folder to "libiio":
+1. Install dependencies:
+       sudo apt-get install libiio-dev
+
+2. Go to your projects directory:
+       cd ~/projects
+
+3. Copy the "epson-iiostream" folder to "libiio":
        cp -r epson-iiostream libiio
 
-3. Go to your projects/libiio directory and build epson-iiostream:
+4. Go to your projects/libiio directory and build epson-iiostream:
        cd libiio
        mkdir epson_build
        cd epson_build
        cmake ../epson-iiostream
        cmake --build .
 
-4. Run epson-iiostream command examples (Ctrl+c to exit):
+5. Run epson-iiostream command examples (Ctrl+c to exit):
        sudo ./epson-iiostream
        sudo ./epson-iiostream -d iio:device0 -t trigger0 -c 10
        sudo ./epson-iiostream -d epsonG354PDH0 -t epsonG354PDH0-dev0
+
+	Note that the above example assumes an Epson G354PDH0 is connected.
+
+6. Run epson-iiostream through iiod
+   a) Run iiod on the Raspberry Pi:
+       	sudo iiod 
+
+   b) Run epson-iiostream over the network from another computer
+      The example below assumes the Raspberry Pi’s IP address is 192.168.1.127:
+      	sudo ./epson-iiostream -n 192.168.1.127
+
+
+ADI IIO OSCILLOSCOPE 
+====================
+The following commands describe how to run the ADI IIO OSCILLOSCOPE application. For more details, see
+https://trupples.github.io/adi-documentation/software/iio-oscilloscope/
+1. Run iiod on RPI:
+   		sudo iiod 
+
+2. Run ADI IIO OSCILLOSCOPE on a Linux or Windows PC and Select to Manual and type in "URI:" box
+           ip:192.168.1.127
+3. Click on the "Refresh" button
+4. Click on the "Connect" button
+5. Select the device in the Device Selection area. For example, an epsonG365PDF1.
+6. Check or change the filter and sample rate settings as needed in this window.
+7. Switch to another window "Capture". Enables Plot Channels and adjust "Samples" buffer value for the chosen Device's Sample Rate (approximately "Sample Rate" / 2)
+8. Click on "Capture/Stop" button.
+
+
+SYSFS INTERFACE
+===============
+The SYSFS interface can be used to read and write the device configuration from the command line.
+1. type: sudo -i
+       
+The following examples can be performed:
+2. Shows available settings for filter_low_pass_3db_frequency_available:
+		cat /sys/bus/iio/devices/iio\:device0/filter_low_pass_3db_frequency_available 
+		0.000000 2.000000 4.000000 8.000000 16.000000 32.000000 64.000000 128.000000 32.000050 32.000100 32.000200 32.000400 64.000050 64.000100 64.000200 64.000400 128.000050 128.000100 128.000200 128.000400
+
+3. Set filter_low_pass_3db_frequency to 32.000400 (tap32fc400):
+		echo 32.000400 > /sys/bus/iio/devices/iio\:device0/filter_low_pass_3db_frequency
+
+4. Get filter_low_pass_3db_frequency to 32.000400 (tap32fc400):
+		cat /sys/bus/iio/devices/iio\:device0/filter_low_pass_3db_frequency
+        32.000400
+           
+5. Get product id:
+		cat /sys/bus/iio/devices/iio\:device0/product_id
+        G355QDG0
+           
+ 
+DEBUGFS INTERFACE
+=================
+The DEBUGFS interface can be used to dump all the IMU register values
+		cat /sys/kernel/debug/iio/iio\:device0/regdump
+
+The following list shows a sample output of register settings.
+
+Window 0
+========
+Reg Value----|Reg Name--------------|R/W|Dflt
+REG[02]=0400 :MODE_CTRL              R/W 0400
+REG[04]=0000 :DIAG_STAT               R  0000
+REG[06]=0000 :FLAG                    R  0000
+REG[08]=0000 :GPIO                   R/W 0200
+REG[0a]=0000 :COUNT                   R  0000
+REG[0c]=0000 :RANGE_OVER              R  0000
+REG[0e]=ffff :TEMP_HIGH               R  FFFF
+REG[10]=ffff :TEMP_LOW                R  FFFF
+REG[12]=ffff :XGYRO_HIGH              R  FFFF
+REG[14]=ffff :XGYRO_LOW               R  FFFF
+REG[16]=ffff :YGYRO_HIGH              R  FFFF
+REG[18]=ffff :YGYRO_LOW               R  FFFF
+REG[1a]=ffff :ZGYRO_HIGH              R  FFFF
+REG[1c]=ffff :ZGYRO_LOW               R  FFFF
+REG[1e]=ffff :XACCL_HIGH              R  FFFF
+REG[20]=ffff :XACCL_LOW               R  FFFF
+REG[22]=ffff :YACCL_HIGH              R  FFFF
+REG[24]=ffff :YACCL_LOW               R  FFFF
+REG[26]=ffff :ZACCL_HIGH              R  FFFF
+REG[28]=ffff :ZACCL_LOW               R  FFFF
+REG[4c]=5345 :ID                      R  5345
+REG[50]=0000 :QTN0_HIGH               R  0000
+REG[52]=0000 :QTN0_LOW                R  0000
+REG[54]=0000 :QTN1_HIGH               R  0000
+REG[56]=0000 :QTN1_LOW                R  0000
+REG[58]=0000 :QTN2_HIGH               R  0000
+REG[5a]=0000 :QTN2_LOW                R  0000
+REG[5c]=0000 :QTN3_HIGH               R  0000
+REG[5e]=0000 :QTN3_LOW                R  0000
+REG[64]=0000 :XDLTA_HIGH / ANG1_HIGH  R  0000
+REG[66]=0000 :XDLTA_LOW  / ANG1_LOW   R  0000
+REG[68]=0000 :YDLTA_HIGH / ANG2_HIGH  R  0000
+REG[6a]=0000 :YDLTA_LOW  / ANG2_LOW   R  0000
+REG[6c]=0000 :ZDLTA_HIGH / ANG3_HIGH  R  0000
+REG[6e]=0000 :ZDLTA_LOW  / ANG3_LOW   R  0000
+REG[70]=0000 :XDLTV_HIGH              R  0000
+REG[72]=0000 :XDLTV_LOW               R  0000
+REG[74]=0000 :YDLTV_HIGH              R  0000
+REG[76]=0000 :YDLTV_LOW               R  0000
+REG[78]=0000 :ZDLTV_HIGH              R  0000
+REG[7a]=0000 :ZDLTV_LOW               R  0000
+REG[7e]=0001 :WIN_CTRL               R/W 0000
+
+Window 1
+========
+Reg Value----|Reg Name--------------|R/W|Dflt
+REG[00]=fefc :SIG_CTRL               R/W FE00
+REG[02]=0006 :MSC_CTRL               R/W 0006
+REG[04]=0403 :SMPL_CTRL              R/W 0103
+REG[06]=0000 :FILTER_CTRL            R/W 0001
+REG[08]=0000 :UART_CTRL              R/W 0000
+REG[0a]=0000 :GLOB_CMD               R/W 0000
+REG[0c]=f003 :BURST_CTRL1            R/W F006
+REG[0e]=0000 :BURST_CTRL2            R/W 0000
+REG[10]=0000 :POL_CTRL               R/W 0000
+REG[12]=00cc :DLT_CTRL               R/W 00CC
+REG[14]=0000 :ATTI_CTRL              R/W 0000
+REG[16]=0000 :GLOB_CMD2              R/W 0000
+REG[38]=4000 :R_MATRIX_G_M11         R/W 4000
+REG[3a]=0000 :R_MATRIX_G_M12         R/W 0000
+REG[3c]=0000 :R_MATRIX_G_M13         R/W 0000
+REG[3e]=0000 :R_MATRIX_G_M21         R/W 0000
+REG[40]=4000 :R_MATRIX_G_M22         R/W 4000
+REG[42]=0000 :R_MATRIX_G_M23         R/W 0000
+REG[44]=0000 :R_MATRIX_G_M31         R/W 0000
+REG[46]=0000 :R_MATRIX_G_M32         R/W 0000
+REG[48]=4000 :R_MATRIX_G_M33         R/W 4000
+REG[4a]=4000 :R_MATRIX_A_M11         R/W 4000
+REG[4c]=0000 :R_MATRIX_A_M12         R/W 0000
+REG[4e]=0000 :R_MATRIX_A_M13         R/W 0000
+REG[50]=0000 :R_MATRIX_A_M21         R/W 0000
+REG[52]=4000 :R_MATRIX_A_M22         R/W 4000
+REG[54]=0000 :R_MATRIX_A_M23         R/W 0000
+REG[56]=0000 :R_MATRIX_A_M31         R/W 0000
+REG[58]=0000 :R_MATRIX_A_M32         R/W 0000
+REG[5a]=4000 :R_MATRIX_A_M33         R/W 4000
+REG[6a]=3347 :PROD_ID1                R  
+REG[6c]=3536 :PROD_ID2                R  
+REG[6e]=4450 :PROD_ID3                R  
+REG[70]=3146 :PROD_ID4                R  
+REG[72]=2816 :VERSION                 R  
+REG[74]=3031 :SERIAL_NUM1             R  
+REG[76]=3030 :SERIAL_NUM2             R  
+REG[78]=3233 :SERIAL_NUM3             R  
+REG[7a]=3338 :SERIAL_NUM4             R  
+REG[7e]=0001 :WIN_CTRL               R/W 
+
+Dump size:3897, Buffer size:8192
+
+
+Revision History
+================
+v1.30 - October 10, 2025
+New features added to the IIO Stream tool
+Additional IMU devices supported
+
+v1.20 - January 25, 2022
+Bug fixes and new features added to the IIO Stream tool
+
+v1.10 - August 13, 2021
+Added support for additional IMU devices
+
+v1.00 - December 17, 2020
+Initial version of IIO Stream and Linux IIO Driver
+
 
 
 

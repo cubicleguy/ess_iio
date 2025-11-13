@@ -1,4 +1,7 @@
-cmake_minimum_required(VERSION 2.8.7)
+# The following are provided as examples and are not installed.
+# They are built to ensure that they build/work.
+
+cmake_minimum_required(VERSION 2.8.12)
 
 project(epson-iiostream C)
 
@@ -69,5 +72,4 @@ set_target_properties(
                                     C_EXTENSIONS OFF
 )
 
-# We don't install any of these, they are examples, not tools. We build them to
-# make sure they build/work, not to deploy them.
+
